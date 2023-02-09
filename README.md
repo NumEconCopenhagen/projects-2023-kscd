@@ -3,7 +3,6 @@
 **Group members:**
 - Ketan
 - Christian
-- C
 
 This repository contains  
 1. Inaugural project. 
