@@ -1,4 +1,4 @@
-# \[Group name\]
+# \[KSCD\]
 
 **Group members:**
 - Ketan
