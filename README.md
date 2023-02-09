@@ -1,8 +1,8 @@
 # \[Group name\]
 
 **Group members:**
-- A
-- B
+- Ketan
+- Christian
 - C
 
 This repository contains  
