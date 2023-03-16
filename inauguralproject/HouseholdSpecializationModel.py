@@ -25,7 +25,6 @@ class HouseholdSpecializationModelClass:
         par.alpha = 0.5
         par.sigma = 1
 
-
         # d. wages
         par.wM = 1.0
         par.wF = 1.0
