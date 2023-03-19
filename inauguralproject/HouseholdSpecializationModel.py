@@ -57,9 +57,6 @@ class HouseholdSpecializationModelClass:
             H = HM**(1-par.alpha)*HF**par.alpha
         elif par.sigma == 0:
             H = np.minimum(HM,HF)
-        # We check if we divide by zero
-        elif HM == 0 or HF == 0:
-            H = 0
         else:
             H = ((1-par.alpha)*HM**((par.sigma-1)/par.sigma)+par.alpha*HF**((par.sigma-1)/par.sigma))**((par.sigma/(par.sigma-1)))
 
@@ -113,15 +110,15 @@ class HouseholdSpecializationModelClass:
 
         return opt
 
-    def solve_continues(self,do_print=False):
+    def solve_continuosly(self,do_print=False):
         """ solve model continously """
         par = self.par
         sol = self.sol
         opt = SimpleNamespace()
 
         # a. all possible choices
-        x = np.linspace(0, 24, 86401)
-        LM, HM, LF, HF = np.meshgrid(x, x, x, x)  # all combinations
+        y = np.linspace(0, 24, 86401)
+        LM, HM, LF, HF = np.meshgrid(y, y, y, y)  # all combinations
 
         # b. calculate utility
         u = self.calc_utility(LM, HM, LF, HF)
