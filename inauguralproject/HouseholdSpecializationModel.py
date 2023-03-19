@@ -57,6 +57,9 @@ class HouseholdSpecializationModelClass:
             H = HM**(1-par.alpha)*HF**par.alpha
         elif par.sigma == 0:
             H = np.minimum(HM,HF)
+        # We check if we divide by zero
+        elif HM == 0 or HF == 0:
+            H = 0
         else:
             H = ((1-par.alpha)*HM**((par.sigma-1)/par.sigma)+par.alpha*HF**((par.sigma-1)/par.sigma))**((par.sigma/(par.sigma-1)))
 
@@ -110,10 +113,37 @@ class HouseholdSpecializationModelClass:
 
         return opt
 
-    def solve(self,do_print=False):
+    def solve_continues(self,do_print=False):
         """ solve model continously """
+        par = self.par
+        sol = self.sol
+        opt = SimpleNamespace()
 
-        pass    
+        # a. all possible choices
+        x = np.linspace(0, 24, 86401)
+        LM, HM, LF, HF = np.meshgrid(x, x, x, x)  # all combinations
+
+        # b. calculate utility
+        u = self.calc_utility(LM, HM, LF, HF)
+
+        # c. set to minus infinity if constraint is broken
+        I = (LM + HM > 24) | (LF + HF > 24)  # | is "or"
+        u[I] = -np.inf
+
+        # d. find maximizing argument
+        j = np.unravel_index(np.argmax(u), u.shape)
+
+        opt.LM = LM[j]
+        opt.HM = HM[j]
+        opt.LF = LF[j]
+        opt.HF = HF[j]
+
+        # e. print
+        if do_print:
+            for k, v in opt.__dict__.items():
+                print(f"{k} = {v:6.4f}")
+
+        return opt  
 
     def solve_wF_vec(self,discrete=False):
         """ solve model for vector of female wages """
