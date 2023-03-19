@@ -1,8 +1,8 @@
 # \[KSCD\]
 
 **Group members:**
-- Ketan
-- Christian
+- Ketan Singh | vtk426
+- Christian Denoux | xjc869
 
 This repository contains  
 1. Inaugural project. 
