@@ -116,24 +116,27 @@ class HouseholdSpecializationModelClass:
         sol = self.sol
         opt = SimpleNamespace()
 
-        # a. all possible choices
-        y = np.linspace(0, 24, 86401)
-        LM, HM, LF, HF = np.meshgrid(y, y, y, y)  # all combinations
+        # a. Start by making guesses, this is because we need a starting point
+        LM_guess = 6
+        LF_guess = 6
+        HM_guess = 6
+        HF_guess = 6
+        x_guess = [LM_guess, LF_guess, HM_guess, HF_guess]
 
-        # b. calculate utility
-        u = self.calc_utility(LM, HM, LF, HF)
+        # Create an objective.
+        # The objective is a negative utility function, thereby to maximize this function we need to optimize.minimize it
+        obj = lambda x: -self.calc_utility(x[0], x[1], x[2], x[3])
 
-        # c. set to minus infinity if constraint is broken
-        I = (LM + HM > 24) | (LF + HF > 24)  # | is "or"
-        u[I] = -np.inf
+        # c. We define maximum and minimum values
+        bounds = ((1e-8, 24-1e-8), (1e-8, 24-1e-8), (1e-8, 24-1e-8), (1e-8, 24-1e-8))
 
-        # d. find maximizing argument
-        j = np.unravel_index(np.argmax(u), u.shape)
+        # d. Crete result thorugh Nelder-Meld method
+        result = optimize.minimize(obj, x_guess, method='Nelder-Mead', bounds=bounds)
 
-        opt.LM = LM[j]
-        opt.HM = HM[j]
-        opt.LF = LF[j]
-        opt.HF = HF[j]
+        opt.LM = result.x[0]
+        opt.LF = result.x[1]
+        opt.HM = result.x[2]
+        opt.HF = result.x[3]
 
         # e. print
         if do_print:
