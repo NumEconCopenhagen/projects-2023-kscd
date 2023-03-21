@@ -110,7 +110,7 @@ class HouseholdSpecializationModelClass:
 
         return opt
 
-    def solve_continuosly(self,do_print=False):
+    def solve_continuous(self,do_print=False):
         """ solve model continously """
         par = self.par
         sol = self.sol
@@ -127,7 +127,7 @@ class HouseholdSpecializationModelClass:
         # The objective is a negative utility function, thereby to maximize this function we need to optimize.minimize it
         obj = lambda x: -self.calc_utility(x[0], x[1], x[2], x[3])
 
-        # c. We define maximum and minimum values
+        # c. We define borders, i.e. maximum and minimum values
         bounds = ((1e-8, 24-1e-8), (1e-8, 24-1e-8), (1e-8, 24-1e-8), (1e-8, 24-1e-8))
 
         # d. Crete result thorugh Nelder-Meld method
