@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 
 import numpy as np
-from scipy import optimize
+from scipy.optimize import minimize
 
 import pandas as pd 
 import matplotlib.pyplot as plt
@@ -131,7 +131,7 @@ class HouseholdSpecializationModelClass:
         bounds = ((1e-8, 24-1e-8), (1e-8, 24-1e-8), (1e-8, 24-1e-8), (1e-8, 24-1e-8))
 
         # d. Crete result thorugh Nelder-Meld method
-        result = optimize.minimize(obj, x_guess, method='Nelder-Mead', bounds=bounds)
+        result = minimize(obj, x_guess, method='Nelder-Mead', bounds=bounds)
 
         opt.LM = result.x[0]
         opt.LF = result.x[1]
@@ -143,12 +143,59 @@ class HouseholdSpecializationModelClass:
             for k, v in opt.__dict__.items():
                 print(f"{k} = {v:6.4f}")
 
-        return opt  
+        return opt
 
-    def solve_wF_vec(self,discrete=False):
+    def solve_wF_vec(self, discrete=False):
         """ solve model for vector of female wages """
 
-        pass
+        par = self.par
+        sol = self.sol
+
+        # a. loop through wF_vec
+        for i, wF in enumerate(par.wF_vec):
+            par.wF = wF
+
+            if discrete:
+                opt = self.solve_discrete()
+            else:
+                opt = self.solve_continuous()
+
+            sol.LM_vec[i] = opt.LM
+            sol.HM_vec[i] = opt.HM
+            sol.LF_vec[i] = opt.LF
+            sol.HF_vec[i] = opt.HF
+    
+    def estimate(self):
+        """ estimate alpha and sigma for each value of wF """
+
+        par = self.par
+        sol = self.sol
+
+        # Create a list to store optimized alpha and sigma values for each wF
+        optimized_alpha_sigma = []
+
+        # Define the objective function
+        def obj(x):
+            par.alpha, par.sigma = x
+            self.solve_wF_vec()
+            self.run_regression()
+            return (sol.beta0 - par.beta0_target) ** 2 + (sol.beta1 - par.beta1_target) ** 2
+
+        # Iterate through wF values
+        for wF in par.wF_vec:
+            par.wF = wF
+
+            # Initial guess and bounds
+            x0 = [par.alpha, par.sigma]
+            bounds = [(0.01, 1), (0.01, 2)]
+
+            # Minimize the objective function
+            res = minimize(obj, x0, bounds=bounds)
+
+            # Store the optimized alpha and sigma values
+            optimized_alpha_sigma.append(res.x)
+
+        return optimized_alpha_sigma
 
     def run_regression(self):
         """ run regression """
@@ -156,12 +203,43 @@ class HouseholdSpecializationModelClass:
         par = self.par
         sol = self.sol
 
-        x = np.log(par.wF_vec)
-        y = np.log(sol.HF_vec/sol.HM_vec)
-        A = np.vstack([np.ones(x.size),x]).T
-        sol.beta0,sol.beta1 = np.linalg.lstsq(A,y,rcond=None)[0]
-    
-    def estimate(self,alpha=None,sigma=None):
-        """ estimate alpha and sigma """
+        # a. data
+        x = par.wF_vec
+        y = sol.HF_vec / (sol.HF_vec + sol.HM_vec)
 
-        pass
+        # b. regress y on x
+        X = np.column_stack((np.ones(x.size), x))
+        beta = np.linalg.lstsq(X, y, rcond=None)[0]
+
+        sol.beta0 = beta[0]
+        sol.beta1 = beta[1]
+
+    def minimize_func(self):
+        """ minimize the objective function """
+
+        # a. define the objective function
+        def obj(x):
+            alpha, sigma = x
+            self.par.alpha = alpha
+            self.par.sigma = sigma
+
+            self.solve_wF_vec()
+
+            self.run_regression()
+
+            diff_beta0 = (self.sol.beta0 - self.par.beta0_target) ** 2
+            diff_beta1 = (self.sol.beta1 - self.par.beta1_target) ** 2
+
+            return diff_beta0 + diff_beta1
+
+        # b. initial guess for alpha and sigma
+        x0 = [self.par.alpha, self.par.sigma]
+
+        # c. bounds for alpha and sigma
+        bounds = [(0.01, 0.99), (0.01, 1.99)]
+
+        # d. minimize the objective function
+        result = minimize(obj, x0, method='Nelder-Mead', bounds=bounds)
+
+        # e. update alpha and sigma with the optimized values
+        self.par.alpha, self.par.sigma = result.x
