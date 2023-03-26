@@ -165,81 +165,50 @@ class HouseholdSpecializationModelClass:
             sol.LF_vec[i] = opt.LF
             sol.HF_vec[i] = opt.HF
     
-    def estimate(self):
-        """ estimate alpha and sigma for each value of wF """
-
-        par = self.par
-        sol = self.sol
-
-        # Create a list to store optimized alpha and sigma values for each wF
-        optimized_alpha_sigma = []
-
-        # Define the objective function
-        def obj(x):
-            par.alpha, par.sigma = x
-            self.solve_wF_vec()
-            self.run_regression()
-            return (sol.beta0 - par.beta0_target) ** 2 + (sol.beta1 - par.beta1_target) ** 2
-
-        # Iterate through wF values
-        for wF in par.wF_vec:
-            par.wF = wF
-
-            # Initial guess and bounds
-            x0 = [par.alpha, par.sigma]
-            bounds = [(0.01, 1), (0.01, 2)]
-
-            # Minimize the objective function
-            res = minimize(obj, x0, bounds=bounds)
-
-            # Store the optimized alpha and sigma values
-            optimized_alpha_sigma.append(res.x)
-
-        return optimized_alpha_sigma
-
-    def run_regression(self):
+    # Defining the regression method        
+    def run_regression(self, print_beta=False):
         """ run regression """
 
         par = self.par
         sol = self.sol
+        # Taking log of the vectors
+        x = np.log(par.wF_vec)
+        y = np.log(sol.HF_vec/sol.HM_vec)
+        # Finding the beta values
+        A = np.vstack([np.ones(x.size),x]).T
+        sol.beta0,sol.beta1 = np.linalg.lstsq(A,y,rcond=None)[0]
+        # Adding an option to print the beta values
+        if print_beta:
+            print(f"Beta0 = {sol.beta0}, Beta1 = {sol.beta1}")
+            
+    def estimate(self, do_print=True):
+        """ estimate alpha and sigma """
+        sol = self.sol
+        par = self.par
 
-        # a. data
-        x = par.wF_vec
-        y = sol.HF_vec / (sol.HF_vec + sol.HM_vec)
+        # Defining the guesses
+        alpha_guess = 0.99
+        sigma_guess = 0.1
+        as_guess = (alpha_guess, sigma_guess)
 
-        # b. regress y on x
-        X = np.column_stack((np.ones(x.size), x))
-        beta = np.linalg.lstsq(X, y, rcond=None)[0]
-
-        sol.beta0 = beta[0]
-        sol.beta1 = beta[1]
-
-    def minimize_func(self):
-        """ minimize the objective function """
-
-        # a. define the objective function
+        # Defining the objective function
         def obj(x):
-            alpha, sigma = x
-            self.par.alpha = alpha
-            self.par.sigma = sigma
-
+            par.alpha, par.sigma = x
             self.solve_wF_vec()
-
             self.run_regression()
+            Rsqr = (par.beta0_target - sol.beta0)**2 + (par.beta1_target - sol.beta1)**2
+            return Rsqr
 
-            diff_beta0 = (self.sol.beta0 - self.par.beta0_target) ** 2
-            diff_beta1 = (self.sol.beta1 - self.par.beta1_target) ** 2
+        # Minimizing the R-squared value with scipy
+        options = {'maxiter': 1000, 'fatol': 1e-6, 'xatol': 1e-6}  # Add optimization options
+        goal = minimize(obj, as_guess, method="Nelder-Mead", options=options)
 
-            return diff_beta0 + diff_beta1
-
-        # b. initial guess for alpha and sigma
-        x0 = [self.par.alpha, self.par.sigma]
-
-        # c. bounds for alpha and sigma
-        bounds = [(0.01, 0.99), (0.01, 1.99)]
-
-        # d. minimize the objective function
-        result = minimize(obj, x0, method='Nelder-Mead', bounds=bounds)
-
-        # e. update alpha and sigma with the optimized values
-        self.par.alpha, self.par.sigma = result.x
+        # Adding an option to print the optimized values
+        if do_print:
+            par.alpha, par.sigma = goal.x
+            self.solve_wF_vec()
+            self.run_regression(print_beta=True)
+            Rsqr = (par.beta0_target - sol.beta0)**2 + (par.beta1_target - sol.beta1)**2
+            print(f"alpha = {par.alpha:6.4f}")
+            print(f"sigma = {par.sigma:6.4f}")
+            print(f"R-squared = {Rsqr:6.4f}")
