@@ -1,0 +1,32 @@
+Introduction
+
+Briefly introduce the topic you have chosen and explain its relevance or your interest in it.
+State the main objectives of your project.
+Data Acquisition
+
+Describe the data source(s) you are using, and the process of acquiring the data (e.g., downloading a dataset, using an API, or scraping a website).
+Include code snippets for the data acquisition process, with proper documentation.
+Data Cleaning and Structuring
+
+Explain any data cleaning or preprocessing steps you took to prepare the data for analysis.
+Discuss any challenges you faced during this process and how you addressed them.
+Include code snippets for data cleaning and structuring, with proper documentation.
+Data Analysis
+
+Describe the data analysis methods you applied to the dataset.
+Provide code snippets for the data analysis process, with proper documentation.
+Visualizations and Presentation of Results
+
+Present visualizations of your data, such as graphs or interactive charts, to support your analysis.
+Summarize the insights you gained from the analysis and visualizations.
+Discuss any limitations of your analysis or areas for further exploration.
+Conclusion
+
+Summarize the key findings of your project.
+Reflect on what you learned from the process of completing the project.
+Appendices
+
+Include any additional information, such as the Python module files (.py) and data files (.csv) you used in your project.
+Make sure to structure your project using a single Jupyter Notebook (.ipynb) for presenting the analysis, and include a README.md file with a brief introduction to your project. If you do not access data through an API call in your Python scripts, upload the .csv file to your GitHub repository along with the code files.
+
+Remember to thoroughly document your code and write it in a manner that is easy for others to understand when providing feedback. The main focus should be on the quality of the code and the presentation of results, rather than acquiring new economic knowledge.
