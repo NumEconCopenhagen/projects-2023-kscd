@@ -5,20 +5,18 @@ This project analyzes the gross unemployment rate in Denmark across industries t
 The **results** of the project can be seen from running [dataproject.ipynb].
 
 ## Applied Datasets
----
+The following are datasets **applied using DstAPI**, i.e. data pulled from **Statistics Denmark**:
 1. AULP01 - Gross Unemplyment by Gender
 2. NAN1 - Real year-to-year change in GDP
 3. RAS300 - Employment by Industry
 
 ## Applied Dependencies
----
 Apart from a standard Anaconda Python 3 installation, the project **requires DstAPI**. To install it do the following:
-    1. Open the Anaconda prompt.
-    2. Run the command 'pip install git+https://github.com/alemartinello dstapi' in the prompt.
-    3. For a more detailed guide on using the DST API, please refer to https://github.com/alemartinello/dstapi.
+1. Open the Anaconda prompt.
+2. Run the command 'pip install git+https://github.com/alemartinello dstapi' in the prompt.
+3. For a more detailed guide on using the DST API, please refer to https://github.com/alemartinello/dstapi.
 
 ## Replecation of Analysis
----
 To replecate our work, you can simply:
 
 1. Clone the project repository
