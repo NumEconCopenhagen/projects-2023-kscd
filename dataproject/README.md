@@ -1,4 +1,4 @@
-# Data analysis Project - Gender Disparities in Employment and Unemployment Across Danish Industries
+# Data Analysis Project - Gender Disparities in Employment and Unemployment Across Danish Industries
 This project aims to analyze the gross unemployment rate in Denmark across different industries, focusing on identifying patterns and trends in the labor market that can inform policy decisions and support efforts to reduce unemployment in the country. Specifically, we will explore how the gender gap in unemployment rates varies across different industries and whether certain industries are more prone to higher levels of unemployment than others.
 
 The project presents the analysis as a "story" to provide a reader-friendly flow. Rather than importing all the necessary data at once and explaining it in detail, the project visualizes the area of interest and imports relevant data as the analysis progresses. This approach allows readers to follow along more easily and better understand how the analysis was conducted.
