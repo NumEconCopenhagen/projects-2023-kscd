@@ -11,4 +11,8 @@ We apply the **following datasets**:
 
 **Dependencies:** Apart from a standard Anaconda Python 3 installation, the project requires the following installations:
 
-``pip install matplotlib-venn``
+For this project we use DST API
+
+1. Open the Anaconda prompt.
+2. Run the command 'pip install git+https://github.com/alemartinello/dstapi' in the prompt.
+3. For a more detailed guide on using the DST API, please refer to https://github.com/alemartinello/dstapi.
