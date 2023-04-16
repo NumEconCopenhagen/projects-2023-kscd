@@ -17,7 +17,7 @@ To replicate our work, apart from a standard Anaconda Python 3 installation, the
 2. Run the command 'pip install git+https://github.com/alemartinello dstapi' in the prompt.
 3. For a more detailed guide on using the DST API, please refer to https://github.com/alemartinello/dstapi.
 
-## Replecation of Analysis
+## Replication of Analysis
 To replecate our work, you can simply:
 
 1. Clone the project repository
