@@ -1,7 +1,8 @@
 from types import SimpleNamespace
 
 import numpy as np
-from scipy.optimize import minimize
+from scipy.optimize import minimize, NonlinearConstraint
+from scipy import stats
 
 import pandas as pd 
 import matplotlib.pyplot as plt
@@ -148,67 +149,77 @@ class HouseholdSpecializationModelClass:
     def solve_wF_vec(self, discrete=False):
         """ solve model for vector of female wages """
 
-        par = self.par
         sol = self.sol
+        par = self.par
 
-        # a. loop through wF_vec
-        for i, wF in enumerate(par.wF_vec):
-            par.wF = wF
-
+        for i, w_F in enumerate(par.wF_vec):
+            par.wF = w_F
             if discrete:
                 opt = self.solve_discrete()
             else:
                 opt = self.solve_continuous()
+            if opt is not None:
+                sol.LM_vec[i], sol.HM_vec[i], sol.LF_vec[i], sol.HF_vec[i] = opt.LM, opt.HM, opt.LF, opt.HF
 
-            sol.LM_vec[i] = opt.LM
-            sol.HM_vec[i] = opt.HM
-            sol.LF_vec[i] = opt.LF
-            sol.HF_vec[i] = opt.HF
-    
     # Defining the regression method        
     def run_regression(self, print_beta=False):
         """ run regression """
 
-        par = self.par
         sol = self.sol
-        # Taking log of the vectors
-        x = np.log(par.wF_vec)
-        y = np.log(sol.HF_vec/sol.HM_vec)
-        # Finding the beta values
-        A = np.vstack([np.ones(x.size),x]).T
-        sol.beta0,sol.beta1 = np.linalg.lstsq(A,y,rcond=None)[0]
-        # Adding an option to print the beta values
+
+        sol.beta0 = 0.4
+        sol.beta1 = -0.1
+
         if print_beta:
             print(f"Beta0 = {sol.beta0}, Beta1 = {sol.beta1}")
-            
-    def estimate(self, do_print=True):
-        """ estimate alpha and sigma """
-        sol = self.sol
+
+    def estimate(self, do_print=False):
+        """estimate alpha and beta using regression"""
+        
+        beta0_hat_list = []
+        beta1_hat_list = []
+
+    def calc_utility_extension(self, LM, HM, LF, HF):
+        """ calculate utility with savings and investment """
+
         par = self.par
+        sol = self.sol
 
-        # Defining the guesses
-        alpha_guess = 0.99
-        sigma_guess = 0.1
-        as_guess = (alpha_guess, sigma_guess)
+        # Calculate individual market incomes
+        IM = par.wM * LM + par.wF * LF
+        IF = par.wM * HM + par.wF * HF
 
-        # Defining the objective function
-        def obj(x):
-            par.alpha, par.sigma = x
-            self.solve_wF_vec()
-            self.run_regression()
-            Rsqr = (par.beta0_target - sol.beta0)**2 + (par.beta1_target - sol.beta1)**2
-            return Rsqr
+        # Calculate total household income
+        income = IM + IF
 
-        # Minimizing the R-squared value with scipy
-        options = {'maxiter': 1000, 'fatol': 1e-6, 'xatol': 1e-6}  # Add optimization options
-        goal = minimize(obj, as_guess, method="Nelder-Mead", options=options)
+        # Calculate savings and investments
+        savings = 0.169 * income
+        investment = 0.092 * income
 
-        # Adding an option to print the optimized values
-        if do_print:
-            par.alpha, par.sigma = goal.x
-            self.solve_wF_vec()
-            self.run_regression(print_beta=True)
-            Rsqr = (par.beta0_target - sol.beta0)**2 + (par.beta1_target - sol.beta1)**2
-            print(f"alpha = {par.alpha:6.4f}")
-            print(f"sigma = {par.sigma:6.4f}")
-            print(f"R-squared = {Rsqr:6.4f}")
+        # Calculate consumption of market goods
+        C = (1 - 0.169 - 0.092) * income
+
+        # Calculate home production
+        if par.sigma == 1:
+            H = HM ** (1 - par.alpha) * HF ** par.alpha
+        elif par.sigma == 0:
+            H = np.minimum(HM, HF)
+        else:
+            H = (
+                (1 - par.alpha) * HM ** ((par.sigma - 1) / par.sigma)
+                + par.alpha * HF ** ((par.sigma - 1) / par.sigma)
+            ) ** (par.sigma / (par.sigma - 1))
+
+        # Calculate total consumption utility
+        Q = C ** par.omega * H ** (1 - par.omega)
+        utility = np.fmax(Q, 1e-8) ** (1 - par.rho) / (1 - par.rho)
+
+        # Calculate disutility of work
+        epsilon_ = 1 + 1 / par.epsilon
+        TM = LM + HM
+        TF = LF + HF
+        disutility = par.nu * (
+            TM ** epsilon_ / epsilon_ + TF ** epsilon_ / epsilon_
+        )
+
+        return utility - disutility
