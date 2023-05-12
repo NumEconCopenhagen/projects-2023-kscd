@@ -7,7 +7,7 @@ class CobbDouglasModelClass:
     def __init__(self):
         """Setup model."""
 
-        # a. create namespaces
+        # create namespaces
         par = self.par = SimpleNamespace()
 
         # Base parameters
@@ -122,52 +122,27 @@ class CobbDouglasModelClass:
         plt.title('Output Changes with Constant Labor')
         plt.show()
 
-
-
-
-    def optimize_production(self, initial_guess=None, print_results=False):
-        """Maximize the output of the Cobb-Douglas Production Function subject to constraints."""
-
-        # Define the objective function to maximize
-        def objective(x):
-            A = x[0]
-            K = x[1]
-            L = x[2]
-            alpha = x[3]
-            return -(-A * (K ** alpha) * (L ** (1 - alpha)))
-
-        # Define the constraints
-        def constraint1(x):
-            return 100 - x[1] - x[2]  # Total amount of capital and labor used in production cannot exceed 100 units.
-
-        def constraint2(x):
-            return x[1] - 5  # Lower bound on the capital stock, which cannot be less than 5 units.
-
-        def constraint3(x):
-            return x[2] - 30  # Lower bound on the labor input, which cannot be less than 30 units.
-
-        constraints = [{'type': 'ineq', 'fun': constraint1},
-                       {'type': 'ineq', 'fun': constraint2},
-                       {'type': 'ineq', 'fun': constraint3}]
-
-        # Define the bounds on the parameters
-        bounds = [(0.1, 10), (5, 50), (30, 70), (0.1, 0.9)]
-
-        # Set the initial guess for the optimization routine
-        if initial_guess is None:
-            initial_guess = [self.par.A, self.par.K, self.par.L, self.par.alpha]
-
-        # Run the optimization routine
-        res = minimize(objective, initial_guess, method='SLSQP', bounds=bounds, constraints=constraints)
-
-        if print_results:
-            print("Optimal values:\nA = {:.2f}\nK = {:.2f}\nL = {:.2f}\nalpha = {:.2f}".format(*res.x))
-            print("Output (Y): {:.2f}".format(-res.fun))
-
-        # Update the model parameters with the optimal values
-        self.par.A, self.par.K, self.par.L, self.par.alpha = res.x
+    def _difference_from_target_output(self, KL, target_Y):
+        """Calculate the difference between the calculated output and the target output."""
+        self.par.K, self.par.L = KL
+        Y = self.calculate_output()
+        return abs(Y - target_Y)
+    
+    def optimize_KL_given_Y(self, target_Y, print_results=False):
+        """Optimize K and L based on a given output Y."""
+        initial_KL = (self.par.K, self.par.L)
+        result = minimize(self._difference_from_target_output, initial_KL, args=(target_Y,), method='Nelder-Mead')
+        self.par.K, self.par.L = result.x
 
         # Calculate the output, MPK, and MPL for the optimized model
-        Y, MPK, MPL = self.cobb_douglas_analysis(print_results=print_results)
+        Y_optimized, MPK_optimized, MPL_optimized = self.cobb_douglas_analysis()
 
-        return Y, MPK, MPL
+        if print_results:
+            print("Optimal values of K and L for the desired output:", result.x)
+            print("")
+            print("The calculated values for the optimized model are as follows:")
+            print("- Output (Y):", Y_optimized)
+            print("- Marginal Product of Capital (MPK):", MPK_optimized)
+            print("- Marginal Product of Labor (MPL):", MPL_optimized)
+
+        return result.x, Y_optimized, MPK_optimized, MPL_optimized
