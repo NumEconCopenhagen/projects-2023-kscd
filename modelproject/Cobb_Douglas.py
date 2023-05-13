@@ -41,7 +41,7 @@ class CobbDouglasModelClass:
         MPL = self.calculate_mpl()
 
         if print_results:
-            print("The calculated values for the baseline model are as follows:")
+            print("The calculated values for the model are as follows:")
             print("- Output (Y):", Y)
             print("- Marginal Product of Capital (MPK):", MPK)
             print("- Marginal Product of Labor (MPL):", MPL)
@@ -144,5 +144,54 @@ class CobbDouglasModelClass:
             print("- Output (Y):", Y_optimized)
             print("- Marginal Product of Capital (MPK):", MPK_optimized)
             print("- Marginal Product of Labor (MPL):", MPL_optimized)
+
+        return result.x, Y_optimized, MPK_optimized, MPL_optimized
+
+class ExtendedCobbDouglasModelClass(CobbDouglasModelClass):
+    def __init__(self):
+        super().__init__()
+
+        # Extra parameters
+        self.par.T = 1.1
+        self.par.beta = 0.2
+
+    def calculate_output(self,):
+        # Calculate the output using the extended formula
+        par = self.par
+        Y = par.A * (par.K ** par.alpha) * (par.L ** (1 - par.alpha)) * (par.T ** par.beta)
+        return Y
+    
+    def calculate_mpk(self):
+        """Calculate the marginal product of capital (MPK) for the extended model."""
+        par = self.par
+        MPK = par.alpha * par.A * (par.K ** (par.alpha - 1)) * (par.L ** (1 - par.alpha)) * (par.T ** par.beta)
+        return MPK
+
+    def calculate_mpl(self):
+        """Calculate the marginal product of labor (MPL) for the extended model."""
+        par = self.par
+        MPL = (1 - par.alpha) * par.A * (par.K ** par.alpha) * (par.L ** (-par.alpha)) * (par.T ** par.beta)
+        return MPL
+
+    def optimize_KL_given_Y(self, target_Y, print_results=False):
+        """Optimize K and L based on a given output Y while keeping other parameters constant."""
+        initial_KL = (self.par.K, self.par.L)  # Store the initial values of K and L
+        result = minimize(self._difference_from_target_output, initial_KL, args=(target_Y,), method='Nelder-Mead')
+        K_optimized, L_optimized = result.x
+
+        # Calculate the output, MPK, and MPL for the optimized model using the optimized K and L values
+        self.par.K, self.par.L = K_optimized, L_optimized
+        Y_optimized, MPK_optimized, MPL_optimized = self.cobb_douglas_analysis()
+
+        if print_results:
+            print("Optimal values of K and L for the desired output:", result.x)
+            print("")
+            print("The calculated values for the optimized model are as follows:")
+            print("- Output (Y):", Y_optimized)
+            print("- Marginal Product of Capital (MPK):", MPK_optimized)
+            print("- Marginal Product of Labor (MPL):", MPL_optimized)
+
+        # Restore the initial values of K and L
+        self.par.K, self.par.L = initial_KL
 
         return result.x, Y_optimized, MPK_optimized, MPL_optimized
