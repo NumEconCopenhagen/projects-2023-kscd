@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 import numpy as np
 from scipy.optimize import minimize, NonlinearConstraint
+from scipy import optimize
 from scipy import stats
 
 import pandas as pd 
@@ -116,41 +117,40 @@ class HouseholdSpecializationModelClass:
         par = self.par
         sol = self.sol
         opt = SimpleNamespace()
+    
+        # a. objective function 
+        def obj(x):
+            LM, HM, LF, HF = x
+            return - self.calc_utility(LM, HM, LF, HF)
+    
+        #b. Constraints and Bounds (to minimize) 
+        def constraints(x):
+            LM, HM, LF, HF = x
+            return [24 - LM-HM, 24 -LF-HF]
+    
 
-        # a. Start by making guesses, this is because we need a starting point
-        LM_guess = 6
-        LF_guess = 6
-        HM_guess = 6
-        HF_guess = 6
-        x_guess = [LM_guess, LF_guess, HM_guess, HF_guess]
+        constraints = ({'type': 'ineq', 'fun':constraints}) 
+        bounds = ((0,24), (0,24), (0,24), (0,24))
 
-        # Create an objective.
-        # The objective is a negative utility function, thereby to maximize this function we need to optimize.minimize it
-        obj = lambda x: -self.calc_utility(x[0], x[1], x[2], x[3])
+        initial_guess = [6,6,6,6]
 
-        # c. We define borders, i.e. maximum and minimum values
-        bounds = ((1e-8, 24-1e-8), (1e-8, 24-1e-8), (1e-8, 24-1e-8), (1e-8, 24-1e-8))
+        #c. Solver 
+        solution = optimize.minimize(obj, initial_guess, method="SLSQP", bounds=bounds, constraints=constraints, tol = 0.000000001)
 
-        # d. Crete result thorugh Nelder-Meld method
-        result = minimize(obj, x_guess, method='Nelder-Mead', bounds=bounds)
-
-        opt.LM = result.x[0]
-        opt.LF = result.x[1]
-        opt.HM = result.x[2]
-        opt.HF = result.x[3]
-
-        # e. print
-        if do_print:
-            for k, v in opt.__dict__.items():
-                print(f"{k} = {v:6.4f}")
-
+        opt.LM = solution.x[0]
+        opt.HM = solution.x[1]
+        opt.LF = solution.x[2]
+        opt.HF = solution.x[3]
+        
         return opt
 
     def solve_wF_vec(self, discrete=False):
-        """ solve model for vector of female wages """
+        """ solve model for vector of female wages"""
 
         sol = self.sol
         par = self.par
+
+        results = np.zeros(par.wF_vec.size)
 
         for i, w_F in enumerate(par.wF_vec):
             par.wF = w_F
@@ -161,65 +161,94 @@ class HouseholdSpecializationModelClass:
             if opt is not None:
                 sol.LM_vec[i], sol.HM_vec[i], sol.LF_vec[i], sol.HF_vec[i] = opt.LM, opt.HM, opt.LF, opt.HF
 
-    # Defining the regression method        
-    def run_regression(self, print_beta=False):
-        """ run regression """
+        sol.result = results
 
+        sol.LM_vec[i] = opt.LM
+        sol.HM_vec[i] = opt.HM
+        sol.LF_vec[i] = opt.LF
+        sol.HF_vec[i] = opt.HF
+
+        return results, sol
+
+    # Defining the regression method        
+    def run_regression(self):
+        """ run regression """
+        
+        #Setting up parameters
+        par = self.par
+        sol = self.sol
+        
+        #Running regression
+        x = np.log(par.wF_vec)
+        y = np.log(sol.HF_vec/sol.HM_vec)
+        A = np.vstack([np.ones(x.size),x]).T
+        sol.beta0,sol.beta1 = np.linalg.lstsq(A,y,rcond=None)[0]
+        return sol
+
+    def estimate(self, alpha=None, sigma=None):
+        """Estimate alpha and beta through regression"""
+        par = self.par
         sol = self.sol
 
-        sol.beta0 = 0.4
-        sol.beta1 = -0.1
+        def obj(q):
+            par.alpha, par.sigma = q
 
-        if print_beta:
-            print(f"Beta0 = {sol.beta0}, Beta1 = {sol.beta1}")
+            self.solve_wF_vec()
+            self.run_regression()
 
-    def estimate(self, do_print=False):
-        """estimate alpha and beta using regression"""
-        
-        beta0_hat_list = []
-        beta1_hat_list = []
+            err =  (par.beta0_target - sol.beta0)**2 + (par.beta1_target-sol.beta1)**2
+            return err
 
-    def calc_utility_extension(self, LM, HM, LF, HF):
-        """ calculate utility with savings and investment """
+
+        bounds = [(0, 0.99),(0.01, 2)]
+        initial_guess = (0.5, 1)
+
+        reg_opt = optimize.minimize(obj, initial_guess, method='Nelder-Mead', bounds=bounds, tol = 0.000000001)
+
+
+        alpha_hat = reg_opt.x[0]
+        sigma_hat = reg_opt.x[1]
+
+        print (f'We find that Beta values as: \n Beta0_hat ={sol.beta0:.2f} \n Beta1_hat ={sol.beta1:.2f}')
+
+        print(f'This means that the parameter values are as given: \n alpha = {alpha_hat:.2f} \n sigma = {sigma_hat:.2f}')
+
+class ExtendedHouseholdSpecializationModelClass(HouseholdSpecializationModelClass):
+
+    def __init__(self):
+        super().__init__() # Initialize the base class
+
+        par = self.par
+        par.zetaM = 1.0 # productivity of men in the market
+        par.zetaF = 1.0 # productivity of women in the market
+        par.etaM = 1.0 # productivity of men at home
+        par.etaF = 1.0 # productivity of women at home
+
+    def calc_utility(self, LM, HM, LF, HF):
+        """ calculate utility """
 
         par = self.par
         sol = self.sol
 
-        # Calculate individual market incomes
-        IM = par.wM * LM + par.wF * LF
-        IF = par.wM * HM + par.wF * HF
+        # a. consumption of market goods
+        C = par.wM*par.zetaM*LM + par.wF*par.zetaF*LF
 
-        # Calculate total household income
-        income = IM + IF
-
-        # Calculate savings and investments
-        savings = 0.169 * income
-        investment = 0.092 * income
-
-        # Calculate consumption of market goods
-        C = (1 - 0.169 - 0.092) * income
-
-        # Calculate home production
+        # b. home production
         if par.sigma == 1:
-            H = HM ** (1 - par.alpha) * HF ** par.alpha
+            H = (par.etaM*HM)**(1-par.alpha)*(par.etaF*HF)**par.alpha
         elif par.sigma == 0:
-            H = np.minimum(HM, HF)
+            H = np.minimum(par.etaM*HM,par.etaF*HF)
         else:
-            H = (
-                (1 - par.alpha) * HM ** ((par.sigma - 1) / par.sigma)
-                + par.alpha * HF ** ((par.sigma - 1) / par.sigma)
-            ) ** (par.sigma / (par.sigma - 1))
+            H = ((1-par.alpha)*(par.etaM*HM)**((par.sigma-1)/par.sigma)+par.alpha*(par.etaF*HF)**((par.sigma-1)/par.sigma))**((par.sigma/(par.sigma-1)))
 
-        # Calculate total consumption utility
-        Q = C ** par.omega * H ** (1 - par.omega)
-        utility = np.fmax(Q, 1e-8) ** (1 - par.rho) / (1 - par.rho)
+        # c. total consumption utility
+        Q = C**par.omega*H**(1-par.omega)
+        utility = np.fmax(Q,1e-8)**(1-par.rho)/(1-par.rho)
 
-        # Calculate disutility of work
-        epsilon_ = 1 + 1 / par.epsilon
-        TM = LM + HM
-        TF = LF + HF
-        disutility = par.nu * (
-            TM ** epsilon_ / epsilon_ + TF ** epsilon_ / epsilon_
-        )
-
+        # d. disutility of work
+        epsilon_ = 1+1/par.epsilon
+        TM = LM+HM
+        TF = LF+HF
+        disutility = par.nu*(TM**epsilon_/epsilon_+TF**epsilon_/epsilon_)
+        
         return utility - disutility
