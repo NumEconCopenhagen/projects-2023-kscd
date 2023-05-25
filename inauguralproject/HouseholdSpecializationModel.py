@@ -212,3 +212,48 @@ class HouseholdSpecializationModelClass:
         print (f'We find that Beta values as: \n Beta0_hat ={sol.beta0:.2f} \n Beta1_hat ={sol.beta1:.2f}')
 
         print(f'This means that the parameter values are as given: \n alpha = {alpha_hat:.2f} \n sigma = {sigma_hat:.2f}')
+
+    def calc_utility_extension(self, LM, HM, LF, HF):
+            """ calculate utility with savings and investment """
+
+            par = self.par
+            sol = self.sol
+
+            # Calculate individual market incomes
+            IM = par.wM * LM + par.wF * LF
+            IF = par.wM * HM + par.wF * HF
+
+            # Calculate total household income
+            income = IM + IF
+
+            # Calculate savings and investments
+            savings = 0.169 * income
+            investment = 0.092 * income
+
+            # Calculate consumption of market goods
+            C = (1 - 0.169 - 0.092) * income
+
+            # Calculate home production
+            if par.sigma == 1:
+                H = HM ** (1 - par.alpha) * HF ** par.alpha
+            elif par.sigma == 0:
+                H = np.minimum(HM, HF)
+            else:
+                H = (
+                    (1 - par.alpha) * HM ** ((par.sigma - 1) / par.sigma)
+                    + par.alpha * HF ** ((par.sigma - 1) / par.sigma)
+                ) ** (par.sigma / (par.sigma - 1))
+
+            # Calculate total consumption utility
+            Q = C ** par.omega * H ** (1 - par.omega)
+            utility = np.fmax(Q, 1e-8) ** (1 - par.rho) / (1 - par.rho)
+
+            # Calculate disutility of work
+            epsilon_ = 1 + 1 / par.epsilon
+            TM = LM + HM
+            TF = LF + HF
+            disutility = par.nu * (
+                TM ** epsilon_ / epsilon_ + TF ** epsilon_ / epsilon_
+            )
+
+            return utility - disutility
