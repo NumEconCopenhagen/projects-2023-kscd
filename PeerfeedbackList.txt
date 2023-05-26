@@ -1,0 +1,26 @@
+We have given peerfeedback to all 6 six groups.
+We cannot be sure as to whether the links are correct, since durig the exam, all repositories have been 'privatised' as to prevent cheating.
+Furthremore we cannot add specific any specific link to the specific issue, because of the above mentioned issue.
+
+Following are the groups given peerfeedback by Ketan Singh (vtk426) and Christian Denoux (xjc869):
+
+1. Inaugural project:
+-   Group: fmw786
+    Issue: https://github.com/NumEconCopenhagen/projects-2023-fmw786/issues
+
+-   Group: n-m
+    Issue: https://github.com/NumEconCopenhagen/projects-2023-n-m/issues
+
+2. Data project:
+-   Group: data_daddies
+    Issue: https://github.com/NumEconCopenhagen/projects-2023-data_daddies/issues
+
+-   Group: fmw786
+    Issue: https://github.com/NumEconCopenhagen/projects-2023-fmw786/issues
+
+3. Model project:
+-   Group: rikke-og-emma
+    Issue: https://github.com/NumEconCopenhagen/projects-2023-rikke-og-emma/issues
+
+-   Group: shashi-buhle
+    Issue: https://github.com/NumEconCopenhagen/projects-2023-shashi-buhle/issues
