@@ -227,11 +227,11 @@ class HouseholdSpecializationModelClass:
             income = IM + IF
 
             # Calculate savings and investments
-            savings = 0.169 * income
-            investment = 0.092 * income
+            savings = 0.142 * income
+            investment = 0.098 * income
 
             # Calculate consumption of market goods
-            C = (1 - 0.169 - 0.092) * income
+            C = (1 - 0.142 - 0.098) * income
 
             # Calculate home production
             if par.sigma == 1:
