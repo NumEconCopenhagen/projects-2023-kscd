@@ -112,7 +112,7 @@ class HouseholdSpecializationModelClass:
 
         return opt
 
-    def solve_continuous(self,do_print=False):
+    def solve_continuous(self,do_print=False): # Used copilot and chatGBT to solve this part
         """ solve model continously """
         par = self.par
         sol = self.sol
@@ -123,7 +123,7 @@ class HouseholdSpecializationModelClass:
             LM, HM, LF, HF = x
             return - self.calc_utility(LM, HM, LF, HF)
     
-        #b. Constraints and Bounds (to minimize) 
+        #b. Constraints and Bounds (to minimize)
         def constraints(x):
             LM, HM, LF, HF = x
             return [24 - LM-HM, 24 -LF-HF]
@@ -144,7 +144,7 @@ class HouseholdSpecializationModelClass:
         
         return opt
 
-    def solve_wF_vec(self, discrete=False):
+    def solve_wF_vec(self, discrete=False): # Used copilot and chatGBT to solve this part 
         """ solve model for vector of female wages"""
 
         sol = self.sol
@@ -209,9 +209,9 @@ class HouseholdSpecializationModelClass:
         alpha_hat = reg_opt.x[0]
         sigma_hat = reg_opt.x[1]
 
-        print (f'We find that Beta values as: \n Beta0_hat ={sol.beta0:.2f} \n Beta1_hat ={sol.beta1:.2f}')
+        print (f'Hereby: \n Beta0_hat ={sol.beta0:.2f} \n Beta1_hat ={sol.beta1:.2f}')
 
-        print(f'This means that the parameter values are as given: \n alpha = {alpha_hat:.2f} \n sigma = {sigma_hat:.2f}')
+        print(f'Hereby: \n alpha = {alpha_hat:.2f} \n sigma = {sigma_hat:.2f}')
 
     def calc_utility_extension(self, LM, HM, LF, HF):
             """ calculate utility with savings and investment """
